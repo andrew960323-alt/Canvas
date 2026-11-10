@@ -6,11 +6,14 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -20,11 +23,10 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.PaintingStyle.Companion.Stroke
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.res.imageResource
-import androidx.compose.ui.tooling.preview.Preview
+import kotlinx.coroutines.delay
 import tw.edu.pu.csim.s1141234.canvas.ui.theme.CanvasTheme
 
 class MainActivity : ComponentActivity() {
@@ -45,23 +47,46 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun CanvasScreen(modifier: Modifier = Modifier) {
+    var CanvasWidth by remember { mutableStateOf(value = 0f) }
+    var CanvaHeight by remember { mutableStateOf(value = 0f) }
 
-    var CanvasWidth by remember { mutableStateOf(0f) }
-    var CamvaHeight by remember { mutableStateOf(0f) }
+    var minionsX by remember { mutableStateOf(value = 0f) }
+    var minionsY by remember { mutableStateOf(value = 0f) }
+
+    var gameOver by remember { mutableStateOf(value = false) }
+// 小小兵向右移動的累積距離 (px)
+    var moveX by remember { mutableStateOf(0f) }
+
+// 載入圖片資源 (小小兵)
     val minionsImage: ImageBitmap =
         ImageBitmap.imageResource(id = R.drawable.minions)
 
-    Box(
-        modifier = Modifier.fillMaxSize()
-    ){
+// 每 0.1 秒移動 5px,完全超出邊界就回到 (0,0)
+    LaunchedEffect(gameOver) {
+        while (!gameOver) {
+            delay(100L)
+            minionsX += 5
+            minionsY += 5
+
+// 完全超出邊界 (左上角已超過畫布寬或高) 就回到 (0,0)
+            if (minionsX > CanvasWidth || minionsY > CanvaHeight) {
+                minionsX = 0f
+                minionsY = 0f
+            }
+        }
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
         Canvas(
             modifier = Modifier.fillMaxSize()
-        ){
+        ) {
+// 繪製洋紅色的圓, 半徑 100, 圓心 (100,100)
             drawCircle(
                 Color.Magenta,
                 100f,
                 Offset(100f, 100f)
             )
+// 繪製藍色空心矩形, 左上角 (300,200), 寬度與高度 200
             drawRect(
                 Color.Blue,
                 Offset(300f, 200f),
@@ -70,7 +95,7 @@ fun CanvasScreen(modifier: Modifier = Modifier) {
             )
 
             CanvasWidth = size.width
-            CamvaHeight = size.height
+            CanvaHeight = size.height
 
             drawLine(
                 Color.Red,
@@ -78,17 +103,32 @@ fun CanvasScreen(modifier: Modifier = Modifier) {
                 Offset(size.width, size.height),
                 strokeWidth = 10f
             )
+
+// 取得小小兵圖檔的寬度與高度
             val minionsWidth = minionsImage.width
             val minionsHeight = minionsImage.height
 
+// 置中公式：(畫布寬高 - 圖片寬高) / 2f
             val offsetX = (size.width - minionsWidth) / 2f
             val offsetY = (size.height - minionsHeight) / 2f
 
-            translate(offsetX, offsetY) {
+// 在置中位置的基礎上,再加上向右移動的距離
+            translate(minionsX, minionsY) {
                 drawImage(minionsImage)
             }
-
         }
-        Text("畫布寬度 $CanvasWidth, 長度 $CamvaHeight")
+        Column {
+            Text("畫布寬度 CanvaHeight")
+            Button(
+                onClick = { gameOver = !gameOver }
+            )
+            {
+                if (gameOver) {
+                    Text("繼續遊戲")
+                } else {
+                    Text("停止遊戲")
+                }
+            }
+        }
     }
 }
